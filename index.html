@@ -954,7 +954,7 @@
 
         // Paksa UI untuk Refresh seketika
         document.getElementById("textLastUpdated").innerText =
-          "Live: " + new Date().toLocaleTimeString("id-ID");
+          "Update: " + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + " WIB";
         initDropdownKelas();
 
         // Cek tab mana yang sedang terbuka dan refresh isinya
