@@ -892,86 +892,102 @@
         }
       }
     </script>
-    <!-- ========================================== -->
-    <!-- RADAR FIREBASE REAL-TIME UNTUK DASHBOARD SISWA -->
-    <!-- ========================================== -->
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-      import {
-        getFirestore,
-        collection,
-        onSnapshot,
-      } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+   <!-- ========================================== -->
+  <!-- RADAR FIREBASE REAL-TIME UNTUK DASHBOARD SISWA -->
+  <!-- ========================================== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      onSnapshot,
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyDxiZ37fQtvcPtURQoETzqNHogPqqdAST8",
-        authDomain: "rekaptugas-4ba0b.firebaseapp.com",
-        projectId: "rekaptugas-4ba0b",
-        storageBucket: "rekaptugas-4ba0b.firebasestorage.app",
-        messagingSenderId: "1008723675233",
-        appId: "1:1008723675233:web:68a3c5b6e10f06245ac220",
-      };
+    const firebaseConfig = {
+      apiKey: "AIzaSyDxiZ37fQtvcPtURQoETzqNHogPqqdAST8",
+      authDomain: "rekaptugas-4ba0b.firebaseapp.com",
+      projectId: "rekaptugas-4ba0b",
+      storageBucket: "rekaptugas-4ba0b.firebasestorage.app",
+      messagingSenderId: "1008723675233",
+      appId: "1:1008723675233:web:68a3c5b6e10f06245ac220",
+    };
 
-      const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-      let isFirebaseConnected = false;
+    let isFirebaseConnected = false;
 
-      // Mendengarkan perubahan dari tabel "pengumpulan"
-      onSnapshot(collection(db, "pengumpulan"), (snapshot) => {
-        if (!isFirebaseConnected) {
-          // Bersihkan data contoh (Budi Santoso dkk) saat pertama kali live
-          globalRawData = [];
-          isFirebaseConnected = true;
+    // Mendengarkan perubahan dari tabel "pengumpulan"
+    onSnapshot(collection(db, "pengumpulan"), (snapshot) => {
+      let adaPerubahan = false;
+
+      if (!isFirebaseConnected) {
+        // Bersihkan data contoh (Budi Santoso dkk) saat pertama kali live
+        globalRawData = [];
+        isFirebaseConnected = true;
+        adaPerubahan = true;
+      }
+
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added" || change.type === "modified") {
+          adaPerubahan = true;
         }
 
-        snapshot.docChanges().forEach((change) => {
-          const data = change.doc.data();
+        const data = change.doc.data();
 
-          // Konversi format status Guru ke Siswa
-          const statusSiswa =
-            data.statusTugas === "tuntas" ? "Selesai" : "Belum";
+        // Konversi format status Guru ke Siswa
+        const statusSiswa =
+          data.statusTugas === "tuntas" ? "Selesai" : "Belum";
 
-          // Cek apakah data sudah ada
-          const existingIndex = globalRawData.findIndex(
-            (row) => row[0] === data.namaSiswa && row[2].includes(data.soalId),
-          );
+        // Cek apakah data sudah ada
+        const existingIndex = globalRawData.findIndex(
+          (row) => row[0] === data.namaSiswa && row[2].includes(data.soalId),
+        );
 
-          if (existingIndex >= 0) {
-            globalRawData[existingIndex][3] = statusSiswa; // Update status
-          } else {
-            // Tambah baris data baru sesuai format array Siswa
-            globalRawData.push([
-              data.namaSiswa,
-              data.kelas,
-              `Tugas ID ${data.soalId} (Data Live Database)`,
-              statusSiswa,
-              "#",
-              "-",
-            ]);
-          }
-        });
-
-        // Paksa UI untuk Refresh seketika
-        document.getElementById("textLastUpdated").innerText =
-          "Update: " + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + " WIB";
-        initDropdownKelas();
-
-        // Cek tab mana yang sedang terbuka dan refresh isinya
-        const selectedKelasMurid =
-          document.getElementById("filterKelasMurid").value;
-        const currName = document.getElementById("selectNamaMurid").value;
-
-        if (selectedKelasMurid) {
-          onKelasMuridChanged();
-          if (currName) {
-            document.getElementById("selectNamaMurid").value = currName;
-            renderTugasMurid();
-          }
+        if (existingIndex >= 0) {
+          globalRawData[existingIndex][3] = statusSiswa; // Update status
         } else {
-          renderWaliKelas();
+          // Tambah baris data baru sesuai format array Siswa
+          globalRawData.push([
+            data.namaSiswa,
+            data.kelas,
+            `Tugas ID ${data.soalId} (Data Live Database)`,
+            statusSiswa,
+            "#",
+            "-",
+          ]);
         }
       });
-    </script>
+
+      // HANYA update teks jika benar-benar ada data masuk/berubah
+      if (adaPerubahan) {
+        const sekarang = new Date();
+        const opsiTanggal = { day: 'numeric', month: 'short', year: 'numeric' };
+        const opsiJam = { hour: '2-digit', minute: '2-digit' };
+        
+        const formatTanggal = sekarang.toLocaleDateString('id-ID', opsiTanggal);
+        const formatJam = sekarang.toLocaleTimeString('id-ID', opsiJam);
+        
+        document.getElementById("textLastUpdated").innerText = `Update: ${formatTanggal}, ${formatJam} WIB`;
+      }
+
+      initDropdownKelas();
+
+      // Cek tab mana yang sedang terbuka dan refresh isinya
+      const selectedKelasMurid =
+        document.getElementById("filterKelasMurid").value;
+      const currName = document.getElementById("selectNamaMurid").value;
+
+      if (selectedKelasMurid) {
+        onKelasMuridChanged();
+        if (currName) {
+          document.getElementById("selectNamaMurid").value = currName;
+          renderTugasMurid();
+        }
+      } else {
+        renderWaliKelas();
+      }
+    });
+  </script>
   </body>
 </html>
