@@ -900,7 +900,8 @@
     import {
       getFirestore,
       collection,
-      onSnapshot,
+      doc,
+      onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -915,39 +916,26 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let isFirebaseConnected = false;
+    let isInitialLoadDone = false;
 
-    // Mendengarkan perubahan dari tabel "pengumpulan"
+    // 1. Listener utama untuk tabel pengumpulan tugas siswa
     onSnapshot(collection(db, "pengumpulan"), (snapshot) => {
-      let adaPerubahan = false;
-
-      if (!isFirebaseConnected) {
-        // Bersihkan data contoh (Budi Santoso dkk) saat pertama kali live
+      if (!isInitialLoadDone) {
         globalRawData = [];
-        isFirebaseConnected = true;
-        adaPerubahan = true;
+        isInitialLoadDone = true;
       }
 
       snapshot.docChanges().forEach((change) => {
-        if (change.type === "added" || change.type === "modified") {
-          adaPerubahan = true;
-        }
-
         const data = change.doc.data();
+        const statusSiswa = data.statusTugas === "tuntas" ? "Selesai" : "Belum";
 
-        // Konversi format status Guru ke Siswa
-        const statusSiswa =
-          data.statusTugas === "tuntas" ? "Selesai" : "Belum";
-
-        // Cek apakah data sudah ada
         const existingIndex = globalRawData.findIndex(
           (row) => row[0] === data.namaSiswa && row[2].includes(data.soalId),
         );
 
         if (existingIndex >= 0) {
-          globalRawData[existingIndex][3] = statusSiswa; // Update status
+          globalRawData[existingIndex][3] = statusSiswa;
         } else {
-          // Tambah baris data baru sesuai format array Siswa
           globalRawData.push([
             data.namaSiswa,
             data.kelas,
@@ -959,23 +947,9 @@
         }
       });
 
-      // HANYA update teks jika benar-benar ada data masuk/berubah
-      if (adaPerubahan) {
-        const sekarang = new Date();
-        const opsiTanggal = { day: 'numeric', month: 'short', year: 'numeric' };
-        const opsiJam = { hour: '2-digit', minute: '2-digit' };
-        
-        const formatTanggal = sekarang.toLocaleDateString('id-ID', opsiTanggal);
-        const formatJam = sekarang.toLocaleTimeString('id-ID', opsiJam);
-        
-        document.getElementById("textLastUpdated").innerText = `Update: ${formatTanggal}, ${formatJam} WIB`;
-      }
-
       initDropdownKelas();
 
-      // Cek tab mana yang sedang terbuka dan refresh isinya
-      const selectedKelasMurid =
-        document.getElementById("filterKelasMurid").value;
+      const selectedKelasMurid = document.getElementById("filterKelasMurid").value;
       const currName = document.getElementById("selectNamaMurid").value;
 
       if (selectedKelasMurid) {
@@ -986,6 +960,19 @@
         }
       } else {
         renderWaliKelas();
+      }
+    });
+
+    // 2. Listener khusus untuk melacak waktu update terakhir dari dokumen metadata guru
+    onSnapshot(doc(db, "metadata", "sistem"), (docSnap) => {
+      if (docSnap.exists() && docSnap.data().terakhirDiubah) {
+        const waktuUpdate = docSnap.data().terakhirDiubah.toDate();
+        const formatTanggal = waktuUpdate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        const formatJam = waktuUpdate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        
+        document.getElementById("textLastUpdated").innerText = `Update: ${formatTanggal}, ${formatJam} WIB`;
+      } else {
+        document.getElementById("textLastUpdated").innerText = "Update: Menunggu aktivitas guru";
       }
     });
   </script>
