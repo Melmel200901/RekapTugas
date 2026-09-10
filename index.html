@@ -30,13 +30,10 @@
             <span
               class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
             ></span>
-            Portal Pembelajaran Interaktif
+            Portal Pemantauan Tugas
           </div>
-          <h1 class="text-2xl font-black tracking-tight">
-            Monitoring Tugas Matematika
-          </h1>
           <p class="text-xs text-blue-100/80 mt-0.5">
-            Cek status tugas mandiri murid & rekap siap salin untuk wali kelas
+            Cek status tugas murid dan rekap untuk wali kelas
           </p>
         </div>
         <div
@@ -83,7 +80,7 @@
               d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
             />
           </svg>
-          Mode Murid
+          Murid
         </button>
         <button
           id="tabBtnWali"
@@ -103,7 +100,7 @@
               d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h55.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          Mode Wali Kelas
+          Wali Kelas
         </button>
       </div>
 
@@ -119,27 +116,27 @@
             <div>
               <label
                 class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2"
-                >1. Pilih Kelas</label
+                >Pilih Kelas</label
               >
               <select
                 id="filterKelasMurid"
                 onchange="onKelasMuridChanged()"
                 class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition"
               >
-                <option value="">-- Pilih Kelas --</option>
+                <option value="">Pilih Kelas</option>
               </select>
             </div>
             <div>
               <label
                 class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2"
-                >2. Pilih Namamu</label
+                >Pilih Nama</label
               >
               <select
                 id="selectNamaMurid"
                 onchange="renderTugasMurid()"
                 class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition"
               >
-                <option value="">-- Memuat nama... --</option>
+                <option value="">-- Pilih Nama --</option>
               </select>
             </div>
           </div>
@@ -253,8 +250,6 @@
       <!-- SECTION 2: MODE WALI KELAS            -->
       <!-- ===================================== -->
       <section id="viewWali" class="hidden space-y-6">
-        <!-- Top Control / Filter Wali -->
-        <!-- Top Control / Filter Wali -->
         <div
           class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
         >
@@ -268,7 +263,7 @@
               onchange="renderWaliKelas()"
               class="p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none min-w-[180px]"
             >
-              <option value="">-- Semua Kelas --</option>
+              <option value="">-- Pilih Kelas --</option>
             </select>
           </div>
         </div>
@@ -311,7 +306,7 @@
           >
             <div>
               <div class="text-xs font-bold text-slate-400 uppercase">
-                Tugas Tuntas (100%)
+                Tugas Tuntas
               </div>
               <div
                 id="statSiswaTuntas"
@@ -379,10 +374,6 @@
             <h3 class="font-bold text-slate-800">
               Daftar Tunggakan Siswa Per Kelas
             </h3>
-            <span
-              class="text-xs font-semibold px-2.5 py-1 bg-rose-100 text-rose-700 rounded-md"
-              >Perlu Ditindaklanjuti</span
-            >
           </div>
 
           <div id="containerListWali" class="divide-y divide-slate-100">
@@ -428,7 +419,7 @@
         const selectedKelas = document.getElementById("filterKelasMurid").value;
         const selectNama = document.getElementById("selectNamaMurid");
 
-        selectNama.innerHTML = '<option value="">-- Pilih Namamu --</option>';
+        selectNama.innerHTML = '<option value="">-- Pilih Nama --</option>';
 
         if (!selectedKelas) {
           selectNama.innerHTML =
@@ -634,6 +625,7 @@
         }
       }
     </script>
+
     <!-- ========================================== -->
     <!-- RADAR FIREBASE REAL-TIME UNTUK DASHBOARD SISWA -->
     <!-- ========================================== -->
@@ -658,36 +650,36 @@
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
 
-      let isInitialLoadDone = false;
+      let masterSoal = {};
+      let rawPengumpulan = [];
 
-      // 1. Listener utama untuk tabel pengumpulan tugas siswa
-      onSnapshot(collection(db, "pengumpulan"), (snapshot) => {
-        if (!isInitialLoadDone) {
-          globalRawData = [];
-          isInitialLoadDone = true;
-        }
+      function buildGlobalData() {
+        globalRawData = [];
 
-        snapshot.docChanges().forEach((change) => {
-          const data = change.doc.data();
+        rawPengumpulan.forEach((data) => {
           const statusSiswa =
             data.statusTugas === "tuntas" ? "Selesai" : "Belum";
 
-          const existingIndex = globalRawData.findIndex(
-            (row) => row[0] === data.namaSiswa && row[2].includes(data.soalId),
-          );
+          // Cocokkan berdasarkan data.soalId
+          const soalInfo = masterSoal[data.soalId] || {};
+          const namaTugas = soalInfo.judul || `Tugas ID ${data.soalId}`;
 
-          if (existingIndex >= 0) {
-            globalRawData[existingIndex][3] = statusSiswa;
-          } else {
-            globalRawData.push([
-              data.namaSiswa,
-              data.kelas,
-              `Tugas ID ${data.soalId} (Data Live Database)`,
-              statusSiswa,
-              "#",
-              "-",
-            ]);
+          // Perbaiki link agar selalu bisa diklik
+          let linkSoal = soalInfo.link || "#";
+          if (linkSoal !== "#" && !linkSoal.startsWith("http")) {
+            linkSoal = "https://" + linkSoal;
           }
+
+          const deadline = soalInfo.deadline || "-";
+
+          globalRawData.push([
+            data.namaSiswa,
+            data.kelas,
+            namaTugas,
+            statusSiswa,
+            linkSoal,
+            deadline,
+          ]);
         });
 
         initDropdownKelas();
@@ -705,9 +697,23 @@
         } else {
           renderWaliKelas();
         }
+      }
+
+      onSnapshot(collection(db, "soal"), (snapshot) => {
+        masterSoal = {};
+        snapshot.docs.forEach((docSnap) => {
+          const d = docSnap.data();
+          // PERBAIKAN: Gunakan d.id (angka asli) sebagai kunci pencarian, bukan id dokumen
+          masterSoal[d.id] = d;
+        });
+        buildGlobalData();
       });
 
-      // 2. Listener khusus untuk melacak waktu update terakhir dari dokumen metadata guru
+      onSnapshot(collection(db, "pengumpulan"), (snapshot) => {
+        rawPengumpulan = snapshot.docs.map((d) => d.data());
+        buildGlobalData();
+      });
+
       onSnapshot(doc(db, "metadata", "sistem"), (docSnap) => {
         if (docSnap.exists() && docSnap.data().terakhirDiubah) {
           const waktuUpdate = docSnap.data().terakhirDiubah.toDate();
