@@ -108,7 +108,6 @@
       <!-- SECTION 1: MODE MURID                 -->
       <!-- ===================================== -->
       <section id="viewSiswa" class="space-y-6">
-        <!-- Card Selection -->
         <div
           class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 space-y-4"
         >
@@ -120,10 +119,9 @@
               >
               <select
                 id="filterKelasMurid"
-                onchange="onKelasMuridChanged()"
                 class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition"
               >
-                <option value="">Pilih Kelas</option>
+                <option value="">-- Pilih Kelas --</option>
               </select>
             </div>
             <div>
@@ -133,10 +131,10 @@
               >
               <select
                 id="selectNamaMurid"
-                onchange="renderTugasMurid()"
-                class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition"
+                disabled
+                class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition disabled:opacity-50"
               >
-                <option value="">-- Pilih Nama --</option>
+                <option value="">-- Pilih Kelas Dahulu --</option>
               </select>
             </div>
           </div>
@@ -253,15 +251,14 @@
         <div
           class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
         >
-          <div>
+          <div class="w-full sm:w-auto">
             <label
               class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1"
               >Filter Kelas Wali</label
             >
             <select
               id="filterKelasWali"
-              onchange="renderWaliKelas()"
-              class="p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none min-w-[180px]"
+              class="w-full sm:w-auto p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none min-w-[180px]"
             >
               <option value="">-- Pilih Kelas --</option>
             </select>
@@ -300,7 +297,6 @@
               </svg>
             </div>
           </div>
-
           <div
             class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between"
           >
@@ -331,7 +327,6 @@
               </svg>
             </div>
           </div>
-
           <div
             class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between"
           >
@@ -375,233 +370,17 @@
               Daftar Tunggakan Siswa Per Kelas
             </h3>
           </div>
-
           <div id="containerListWali" class="divide-y divide-slate-100">
-            <!-- Item daftar wali kelas dirender di sini -->
+            <div class="p-8 text-center">
+              Pilih kelas di atas untuk melihat rekapitulasi tunggakan siswa.
+            </div>
           </div>
         </div>
       </section>
     </main>
 
-    <!-- Notification Toast -->
-    <div
-      id="toastNotification"
-      class="fixed bottom-5 right-5 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none"
-    >
-      <span class="text-emerald-400">✓</span>
-      <span id="toastMessage" class="text-sm font-medium"
-        >Rekap berhasil disalin!</span
-      >
-    </div>
-
+    <!-- UI State Switching Script -->
     <script>
-      // Array penyimpan data murni dari Firebase
-      let globalRawData = [];
-
-      function initDropdownKelas() {
-        const daftarKelas = [...new Set(globalRawData.map((row) => row[1]))]
-          .filter(Boolean)
-          .sort();
-
-        const filterMurid = document.getElementById("filterKelasMurid");
-        const filterWali = document.getElementById("filterKelasWali");
-
-        filterMurid.innerHTML = '<option value="">-- Pilih Kelas --</option>';
-        filterWali.innerHTML = '<option value="">-- Semua Kelas --</option>';
-
-        daftarKelas.forEach((kelas) => {
-          filterMurid.innerHTML += `<option value="${kelas}">Kelas ${kelas}</option>`;
-          filterWali.innerHTML += `<option value="${kelas}">Kelas ${kelas}</option>`;
-        });
-      }
-
-      function onKelasMuridChanged() {
-        const selectedKelas = document.getElementById("filterKelasMurid").value;
-        const selectNama = document.getElementById("selectNamaMurid");
-
-        selectNama.innerHTML = '<option value="">-- Pilih Nama --</option>';
-
-        if (!selectedKelas) {
-          selectNama.innerHTML =
-            '<option value="">-- Pilih kelas dulu --</option>';
-          renderTugasMurid();
-          return;
-        }
-
-        const daftarNamaInKelas = [
-          ...new Set(
-            globalRawData
-              .filter((row) => row[1] === selectedKelas)
-              .map((row) => row[0]),
-          ),
-        ].sort();
-
-        daftarNamaInKelas.forEach((nama) => {
-          selectNama.innerHTML += `<option value="${nama}">${nama}</option>`;
-        });
-
-        renderTugasMurid();
-      }
-
-      function renderTugasMurid() {
-        const nama = document.getElementById("selectNamaMurid").value;
-        const kelas = document.getElementById("filterKelasMurid").value;
-        const container = document.getElementById("containerTugasMurid");
-        const cardProgress = document.getElementById("cardProgressMurid");
-
-        if (!nama || !kelas) {
-          cardProgress.classList.add("hidden");
-          container.innerHTML = `
-          <div class="bg-white p-12 rounded-2xl text-center border border-slate-200/80 shadow-sm space-y-3">
-            <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto text-blue-500">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/></svg>
-            </div>
-            <h3 class="font-bold text-slate-700">Pilih Nama Terlebih Dahulu</h3>
-            <p class="text-slate-400 text-sm max-w-sm mx-auto">Silakan pilih kelas dan namamu pada opsi di atas untuk menampilkan daftar tugas dan status pengerjaannya.</p>
-          </div>
-        `;
-          return;
-        }
-
-        const tugasSiswa = globalRawData.filter(
-          (row) => row[0] === nama && row[1] === kelas,
-        );
-        const totalTugas = tugasSiswa.length;
-        const tuntas = tugasSiswa.filter(
-          (row) => String(row[3]).toLowerCase().trim() === "selesai",
-        ).length;
-        const percent =
-          totalTugas > 0 ? Math.round((tuntas / totalTugas) * 100) : 0;
-
-        document.getElementById("namaSiswaSelected").innerText = nama;
-        document.getElementById("infoKelasSiswa").innerText = `Kelas: ${kelas}`;
-        document.getElementById("textProgressPercent").innerText =
-          `${percent}%`;
-        document.getElementById("textProgressDetail").innerText =
-          `${tuntas} / ${totalTugas} Selesai`;
-
-        const circle = document.getElementById("progressCircle");
-        const circumference = 163;
-        const offset = circumference - (percent / 100) * circumference;
-        circle.style.strokeDashoffset = offset;
-
-        const badge = document.getElementById("textStatusBadge");
-        if (percent === 100) {
-          badge.innerText = "🎉 Luar biasa! Semua tugas tuntas!";
-          badge.className = "text-xs text-emerald-400 font-semibold";
-        } else {
-          badge.innerText = `Masih ada ${totalTugas - tuntas} tugas perlu dikerjakan`;
-          badge.className = "text-xs text-rose-300 font-medium";
-        }
-
-        cardProgress.classList.remove("hidden");
-        container.innerHTML = "";
-
-        tugasSiswa.forEach((t) => {
-          const [_, __, namaTugas, status, linkSoal, deadline] = t;
-          const isSelesai = String(status).toLowerCase().trim() === "selesai";
-
-          container.innerHTML += `
-          <div class="bg-white p-5 rounded-2xl shadow-sm border-2 ${isSelesai ? "border-emerald-100 bg-emerald-50/20" : "border-rose-200"} flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition hover:shadow-md">
-            <div class="space-y-1">
-              <div class="flex items-center gap-2">
-                <span class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-md ${isSelesai ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}">
-                  ${isSelesai ? "✓ SELESAI" : "❌ BELUM SELESAI"}
-                </span>
-                ${deadline ? `<span class="text-xs text-slate-400 font-medium">Batas: ${deadline}</span>` : ""}
-              </div>
-              <h3 class="font-bold text-slate-800 text-base mt-1">${namaTugas}</h3>
-            </div>
-            
-            ${
-              !isSelesai
-                ? `
-              <a href="${linkSoal || "#"}" target="_blank" class="w-full sm:w-auto text-center bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-rose-600/20 transition active:scale-95 flex items-center justify-center gap-2">
-                Kerjakan Soal
-              </a>
-            `
-                : `
-              <div class="text-emerald-600 text-xs font-bold flex items-center gap-1 bg-emerald-50 px-3 py-2 rounded-xl">
-                Tercatat di Guru
-              </div>
-            `
-            }
-          </div>
-        `;
-        });
-      }
-
-      function renderWaliKelas() {
-        const filterKelas = document.getElementById("filterKelasWali").value;
-        const container = document.getElementById("containerListWali");
-
-        const filteredData = filterKelas
-          ? globalRawData.filter((row) => row[1] === filterKelas)
-          : globalRawData;
-
-        const daftarSiswa = [...new Set(filteredData.map((row) => row[0]))];
-
-        let countTuntas = 0;
-        let countTunggakan = 0;
-        const tunggakanMap = {};
-
-        daftarSiswa.forEach((nama) => {
-          const tugasSiswa = filteredData.filter((row) => row[0] === nama);
-          const belumSelesai = tugasSiswa.filter(
-            (row) => String(row[3]).toLowerCase().trim() === "belum",
-          );
-
-          if (belumSelesai.length === 0) {
-            countTuntas++;
-          } else {
-            countTunggakan++;
-            const kelas = tugasSiswa[0][1];
-            tunggakanMap[nama] = {
-              kelas: kelas,
-              tugas: belumSelesai.map((row) => row[2]),
-            };
-          }
-        });
-
-        document.getElementById("statTotalSiswa").innerText =
-          daftarSiswa.length;
-        document.getElementById("statSiswaTuntas").innerText = countTuntas;
-        document.getElementById("statSiswaTunggakan").innerText =
-          countTunggakan;
-
-        container.innerHTML = "";
-
-        if (Object.keys(tunggakanMap).length === 0) {
-          container.innerHTML = `
-          <div class="p-8 text-center space-y-2">
-            <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl">🎉</div>
-            <h4 class="font-bold text-slate-800">Semua Siswa Sudah Tuntas!</h4>
-            <p class="text-xs text-slate-400">Tidak ada tunggakan tugas untuk filter kelas ini.</p>
-          </div>
-        `;
-          return;
-        }
-
-        for (const [nama, info] of Object.entries(tunggakanMap)) {
-          container.innerHTML += `
-          <div class="p-4 sm:p-5 hover:bg-slate-50/80 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="font-bold text-slate-800 text-sm">${nama}</span>
-                <span class="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">Kelas ${info.kelas}</span>
-              </div>
-              <div class="text-xs text-rose-600 font-semibold mt-1">
-                ${info.tugas.length} Tugas Belum: <span class="font-normal text-slate-600">${info.tugas.join(", ")}</span>
-              </div>
-            </div>
-            <span class="text-xs font-bold text-rose-500 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100 self-end sm:self-center">
-              Belum Lengkap
-            </span>
-          </div>
-        `;
-        }
-      }
-
       function switchTab(tab) {
         const viewSiswa = document.getElementById("viewSiswa");
         const viewWali = document.getElementById("viewWali");
@@ -627,7 +406,7 @@
     </script>
 
     <!-- ========================================== -->
-    <!-- RADAR FIREBASE REAL-TIME UNTUK DASHBOARD SISWA -->
+    <!-- FIREBASE OPTIMIZED LOGIC                   -->
     <!-- ========================================== -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -635,6 +414,9 @@
         getFirestore,
         collection,
         doc,
+        getDocs,
+        query,
+        where,
         onSnapshot,
       } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -650,70 +432,307 @@
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
 
+      // 1. DAFTAR KELAS STATIS (EDIT SESUAI KEBUTUHAN SEKOLAH ANDA)
+      // Ini mencegah perlunya men-download seluruh database hanya untuk mencari tahu daftar kelas.
+      const DAFTAR_KELAS = [
+        "X 1",
+        "X 2",
+        "X 3",
+        "XI 1",
+        "XI 3",
+        "XI 6",
+        "XI 7",
+      ];
+
+      // Cache memori untuk menyimpan data yang sudah di-fetch agar tidak narik ulang dari database
+      const cacheDataKelas = {};
       let masterSoal = {};
-      let rawPengumpulan = [];
+      let isSoalLoaded = false;
 
-      function buildGlobalData() {
-        globalRawData = [];
+      // Inisialisasi Dropdown Kelas
+      function initDropdownKelas() {
+        const filterMurid = document.getElementById("filterKelasMurid");
+        const filterWali = document.getElementById("filterKelasWali");
 
-        rawPengumpulan.forEach((data) => {
-          const statusSiswa =
-            data.statusTugas === "tuntas" ? "Selesai" : "Belum";
-
-          // Cocokkan berdasarkan data.soalId
-          const soalInfo = masterSoal[data.soalId] || {};
-          const namaTugas = soalInfo.judul || `Tugas ID ${data.soalId}`;
-
-          // Perbaiki link agar selalu bisa diklik
-          let linkSoal = soalInfo.link || "#";
-          if (linkSoal !== "#" && !linkSoal.startsWith("http")) {
-            linkSoal = "https://" + linkSoal;
-          }
-
-          const deadline = soalInfo.deadline || "-";
-
-          globalRawData.push([
-            data.namaSiswa,
-            data.kelas,
-            namaTugas,
-            statusSiswa,
-            linkSoal,
-            deadline,
-          ]);
+        DAFTAR_KELAS.forEach((kelas) => {
+          filterMurid.innerHTML += `<option value="${kelas}">Kelas ${kelas}</option>`;
+          filterWali.innerHTML += `<option value="${kelas}">Kelas ${kelas}</option>`;
         });
+      }
 
-        initDropdownKelas();
-
-        const selectedKelasMurid =
-          document.getElementById("filterKelasMurid").value;
-        const currName = document.getElementById("selectNamaMurid").value;
-
-        if (selectedKelasMurid) {
-          onKelasMuridChanged();
-          if (currName) {
-            document.getElementById("selectNamaMurid").value = currName;
-            renderTugasMurid();
-          }
-        } else {
-          renderWaliKelas();
+      // 2. FETCH MASTER SOAL (Sekali saja)
+      async function loadMasterSoal() {
+        if (isSoalLoaded) return;
+        try {
+          const snapshot = await getDocs(collection(db, "soal"));
+          snapshot.docs.forEach((docSnap) => {
+            const d = docSnap.data();
+            masterSoal[d.id] = d;
+          });
+          isSoalLoaded = true;
+        } catch (error) {
+          console.error("Gagal memuat master soal:", error);
         }
       }
 
-      onSnapshot(collection(db, "soal"), (snapshot) => {
-        masterSoal = {};
-        snapshot.docs.forEach((docSnap) => {
-          const d = docSnap.data();
-          // PERBAIKAN: Gunakan d.id (angka asli) sebagai kunci pencarian, bukan id dokumen
-          masterSoal[d.id] = d;
+      // 3. FETCH DATA PENGUMPULAN PER KELAS (ON-DEMAND)
+      async function fetchDataKelas(kelas) {
+        // Jika data kelas sudah ada di memori, kembalikan dari memori saja (0 kuota read!)
+        if (cacheDataKelas[kelas]) return cacheDataKelas[kelas];
+
+        try {
+          // Ambil data HANYA untuk kelas yang dipilih
+          const q = query(
+            collection(db, "pengumpulan"),
+            where("kelas", "==", kelas),
+          );
+          const querySnapshot = await getDocs(q);
+
+          const dataProcessed = querySnapshot.docs.map((doc) => {
+            const data = doc.data();
+            const soalInfo = masterSoal[data.soalId] || {};
+            let linkSoal = soalInfo.link || "#";
+            if (linkSoal !== "#" && !linkSoal.startsWith("http")) {
+              linkSoal = "https://" + linkSoal;
+            }
+            return {
+              nama: data.namaSiswa,
+              kelas: data.kelas,
+              namaTugas: soalInfo.judul || `Tugas ID ${data.soalId}`,
+              status: data.statusTugas === "tuntas" ? "Selesai" : "Belum",
+              linkSoal: linkSoal,
+              deadline: soalInfo.deadline || "-",
+            };
+          });
+
+          // Simpan ke cache
+          cacheDataKelas[kelas] = dataProcessed;
+          return dataProcessed;
+        } catch (error) {
+          console.error("Gagal mengambil data pengumpulan:", error);
+          return [];
+        }
+      }
+
+      // ==========================================
+      // EVENT LISTENERS & RENDER LOGIC
+      // ==========================================
+
+      // Saat Murid Mengubah Pilihan Kelas
+      document
+        .getElementById("filterKelasMurid")
+        .addEventListener("change", async (e) => {
+          const kelas = e.target.value;
+          const selectNama = document.getElementById("selectNamaMurid");
+
+          selectNama.innerHTML =
+            '<option value="">-- Memuat Data... --</option>';
+          selectNama.disabled = true;
+
+          if (!kelas) {
+            selectNama.innerHTML =
+              '<option value="">-- Pilih Kelas Dahulu --</option>';
+            resetTampilanMurid();
+            return;
+          }
+
+          await loadMasterSoal();
+          const dataKelas = await fetchDataKelas(kelas);
+
+          // Ekstrak nama-nama unik dari kelas tersebut
+          const daftarNama = [...new Set(dataKelas.map((d) => d.nama))].sort();
+
+          selectNama.innerHTML = '<option value="">-- Pilih Nama --</option>';
+          daftarNama.forEach((nama) => {
+            selectNama.innerHTML += `<option value="${nama}">${nama}</option>`;
+          });
+
+          selectNama.disabled = false;
+          resetTampilanMurid();
         });
-        buildGlobalData();
-      });
 
-      onSnapshot(collection(db, "pengumpulan"), (snapshot) => {
-        rawPengumpulan = snapshot.docs.map((d) => d.data());
-        buildGlobalData();
-      });
+      // Saat Murid Mengubah Pilihan Nama
+      document
+        .getElementById("selectNamaMurid")
+        .addEventListener("change", async (e) => {
+          const nama = e.target.value;
+          const kelas = document.getElementById("filterKelasMurid").value;
+          if (!nama || !kelas) {
+            resetTampilanMurid();
+            return;
+          }
 
+          const dataKelas = cacheDataKelas[kelas] || [];
+          const tugasSiswa = dataKelas.filter((d) => d.nama === nama);
+          renderTugasMurid(nama, kelas, tugasSiswa);
+        });
+
+      // Render Dashboard Murid
+      function renderTugasMurid(nama, kelas, tugasSiswa) {
+        const container = document.getElementById("containerTugasMurid");
+        const cardProgress = document.getElementById("cardProgressMurid");
+        const totalTugas = tugasSiswa.length;
+        const tuntas = tugasSiswa.filter((d) => d.status === "Selesai").length;
+        const percent =
+          totalTugas > 0 ? Math.round((tuntas / totalTugas) * 100) : 0;
+
+        document.getElementById("namaSiswaSelected").innerText = nama;
+        document.getElementById("infoKelasSiswa").innerText = `Kelas: ${kelas}`;
+        document.getElementById("textProgressPercent").innerText =
+          `${percent}%`;
+        document.getElementById("textProgressDetail").innerText =
+          `${tuntas} / ${totalTugas} Selesai`;
+
+        const circle = document.getElementById("progressCircle");
+        const offset = 163 - (percent / 100) * 163;
+        circle.style.strokeDashoffset = offset;
+
+        const badge = document.getElementById("textStatusBadge");
+        if (percent === 100 && totalTugas > 0) {
+          badge.innerText = "🎉 Luar biasa! Semua tugas tuntas!";
+          badge.className = "text-xs text-emerald-400 font-semibold";
+        } else if (totalTugas > 0) {
+          badge.innerText = `Masih ada ${totalTugas - tuntas} tugas perlu dikerjakan`;
+          badge.className = "text-xs text-rose-300 font-medium";
+        } else {
+          badge.innerText = `Belum ada tugas tercatat`;
+          badge.className = "text-xs text-slate-300 font-medium";
+        }
+
+        cardProgress.classList.remove("hidden");
+        container.innerHTML = "";
+
+        if (totalTugas === 0) {
+          container.innerHTML = `<div class="bg-white p-6 rounded-2xl text-center text-slate-500">Tidak ada tugas ditemukan untuk siswa ini.</div>`;
+          return;
+        }
+
+        tugasSiswa.forEach((t) => {
+          const isSelesai = t.status === "Selesai";
+          container.innerHTML += `
+            <div class="bg-white p-5 rounded-2xl shadow-sm border-2 ${isSelesai ? "border-emerald-100 bg-emerald-50/20" : "border-rose-200"} flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition hover:shadow-md">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-md ${isSelesai ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}">
+                    ${isSelesai ? "✓ SELESAI" : "❌ BELUM SELESAI"}
+                  </span>
+                  ${t.deadline !== "-" ? `<span class="text-xs text-slate-400 font-medium">Batas: ${t.deadline}</span>` : ""}
+                </div>
+                <h3 class="font-bold text-slate-800 text-base mt-1">${t.namaTugas}</h3>
+              </div>
+              
+              ${
+                !isSelesai
+                  ? `
+                <a href="${t.linkSoal}" target="_blank" class="w-full sm:w-auto text-center bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-rose-600/20 transition active:scale-95 flex items-center justify-center gap-2">
+                  Kerjakan Soal
+                </a>
+              `
+                  : `
+                <div class="text-emerald-600 text-xs font-bold flex items-center gap-1 bg-emerald-50 px-3 py-2 rounded-xl">
+                  Tercatat di Guru
+                </div>
+              `
+              }
+            </div>
+          `;
+        });
+      }
+
+      function resetTampilanMurid() {
+        document.getElementById("cardProgressMurid").classList.add("hidden");
+        document.getElementById("containerTugasMurid").innerHTML = `
+          <div class="bg-white p-12 rounded-2xl text-center border border-slate-200/80 shadow-sm space-y-3">
+            <h3 class="font-bold text-slate-700">Pilih Nama Terlebih Dahulu</h3>
+            <p class="text-slate-400 text-sm max-w-sm mx-auto">Silakan pilih kelas dan namamu pada opsi di atas.</p>
+          </div>
+        `;
+      }
+
+      // Saat Wali Kelas Mengubah Pilihan Kelas
+      document
+        .getElementById("filterKelasWali")
+        .addEventListener("change", async (e) => {
+          const kelas = e.target.value;
+          const container = document.getElementById("containerListWali");
+
+          if (!kelas) {
+            document.getElementById("statTotalSiswa").innerText = "0";
+            document.getElementById("statSiswaTuntas").innerText = "0";
+            document.getElementById("statSiswaTunggakan").innerText = "0";
+            container.innerHTML = `<div class="p-8 text-center text-slate-500">Pilih kelas di atas untuk melihat rekapitulasi tunggakan siswa.</div>`;
+            return;
+          }
+
+          container.innerHTML = `<div class="p-8 text-center text-blue-600 font-semibold animate-pulse">Memuat data kelas ${kelas}...</div>`;
+
+          await loadMasterSoal();
+          const dataKelas = await fetchDataKelas(kelas);
+
+          const daftarSiswa = [...new Set(dataKelas.map((row) => row.nama))];
+          let countTuntas = 0;
+          let countTunggakan = 0;
+          const tunggakanMap = {};
+
+          daftarSiswa.forEach((nama) => {
+            const tugasSiswa = dataKelas.filter((row) => row.nama === nama);
+            const belumSelesai = tugasSiswa.filter(
+              (row) => row.status === "Belum",
+            );
+
+            if (belumSelesai.length === 0) {
+              countTuntas++;
+            } else {
+              countTunggakan++;
+              tunggakanMap[nama] = belumSelesai.map((row) => row.namaTugas);
+            }
+          });
+
+          document.getElementById("statTotalSiswa").innerText =
+            daftarSiswa.length;
+          document.getElementById("statSiswaTuntas").innerText = countTuntas;
+          document.getElementById("statSiswaTunggakan").innerText =
+            countTunggakan;
+
+          container.innerHTML = "";
+
+          if (
+            Object.keys(tunggakanMap).length === 0 &&
+            daftarSiswa.length > 0
+          ) {
+            container.innerHTML = `
+            <div class="p-8 text-center space-y-2">
+              <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl">🎉</div>
+              <h4 class="font-bold text-slate-800">Semua Siswa Sudah Tuntas!</h4>
+            </div>
+          `;
+            return;
+          } else if (daftarSiswa.length === 0) {
+            container.innerHTML = `<div class="p-8 text-center text-slate-500">Belum ada data siswa untuk kelas ini.</div>`;
+            return;
+          }
+
+          for (const [nama, tugasList] of Object.entries(tunggakanMap)) {
+            container.innerHTML += `
+            <div class="p-4 sm:p-5 hover:bg-slate-50/80 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-slate-800 text-sm">${nama}</span>
+                  <span class="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">Kelas ${kelas}</span>
+                </div>
+                <div class="text-xs text-rose-600 font-semibold mt-1">
+                  ${tugasList.length} Tugas Belum: <span class="font-normal text-slate-600">${tugasList.join(", ")}</span>
+                </div>
+              </div>
+              <span class="text-xs font-bold text-rose-500 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100 self-end sm:self-center">
+                Belum Lengkap
+              </span>
+            </div>
+          `;
+          }
+        });
+
+      // Update Last Updated Timestamp via onSnapshot (Hanya 1 doc, sangat efisien)
       onSnapshot(doc(db, "metadata", "sistem"), (docSnap) => {
         if (docSnap.exists() && docSnap.data().terakhirDiubah) {
           const waktuUpdate = docSnap.data().terakhirDiubah.toDate();
@@ -726,14 +745,13 @@
             hour: "2-digit",
             minute: "2-digit",
           });
-
           document.getElementById("textLastUpdated").innerText =
             `Update: ${formatTanggal}, ${formatJam} WIB`;
-        } else {
-          document.getElementById("textLastUpdated").innerText =
-            "Update: Menunggu aktivitas guru";
         }
       });
+
+      // Jalankan inisialisasi awal
+      initDropdownKelas();
     </script>
   </body>
 </html>
